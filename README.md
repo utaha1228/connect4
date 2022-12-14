@@ -1,2 +1,2 @@
-# connect4
-Connect4 solver
+# Connect4 solver
+Inspired by http://blog.gamesolver.org/
