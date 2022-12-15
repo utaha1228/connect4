@@ -28,13 +28,7 @@ void clean_cache() {
 int SEARCH_COUNT = 0;
 const int search_order[] = {3, 4, 2, 5, 1, 6, 0};
 
-std::pair<int, int> solve(long long board, int alpha, int beta) {
-    const int moves = countMoves(board);
-
-    if (isWinning(board)) {
-        return std::make_pair(BOARD_SZ - moves + 1, -1);
-    }
-
+std::pair<int, int> abSearch(long long board, int alpha, int beta, int moves) {
     if (moves == BOARD_SZ) {
         return std::make_pair(0, -1);
     }
@@ -51,12 +45,6 @@ std::pair<int, int> solve(long long board, int alpha, int beta) {
 
     SEARCH_COUNT ++;
 
-    // if winning in next move is still not good enough, prune this branch
-    const int optimalScore = BOARD_SZ - (moves + 1) + 1;
-    if (optimalScore <= alpha) {
-        return std::make_pair(optimalScore, -1);
-    }
-
     // check if I can win in next move
     for (int i = 0; i < BOARD_WIDTH; i++) {
         if (!isPlayable(board, i))
@@ -67,6 +55,12 @@ std::pair<int, int> solve(long long board, int alpha, int beta) {
         if (isWinning(nxtBoard)) {
             return std::make_pair(BOARD_SZ - (moves + 1) + 1, i);
         }
+    }
+    
+    // if winning in next move is still not good enough, prune this branch
+    const int optimalScore = BOARD_SZ - (moves + 1) + 1;
+    if (optimalScore <= alpha) {
+        return std::make_pair(optimalScore, -1);
     }
 
     {
@@ -91,7 +85,7 @@ std::pair<int, int> solve(long long board, int alpha, int beta) {
 
         if (must_play != -1) {
             const long long nxtBoard = nxtMove(board, must_play);
-            std::pair<int, int> result = solve(flip(nxtBoard), -beta, -alpha);
+            std::pair<int, int> result = abSearch(flip(nxtBoard), -beta, -alpha, moves + 1);
             return std::make_pair(-result.first, must_play);
         }
     }
@@ -126,7 +120,7 @@ std::pair<int, int> solve(long long board, int alpha, int beta) {
 
         const long long nxtBoard = nxtMove(board, idx);
         
-        std::pair<int, int> result = solve(flip(nxtBoard), -beta, -alpha);
+        std::pair<int, int> result = abSearch(flip(nxtBoard), -beta, -alpha, moves + 1);
         const int score = -result.first;
         if (score >= beta) {
             return std::make_pair(score, idx);
@@ -139,3 +133,13 @@ std::pair<int, int> solve(long long board, int alpha, int beta) {
     db[board % DB_SIZE] = (board << RESULT_LEN) ^ (BOARD_SZ + alpha);
     return std::make_pair(alpha, bestMove);
 }
+
+std::pair<int, int> solve(long long board) {
+    const int moves = countMoves(board);
+
+    if (isWinning(board)) {
+        return std::make_pair(BOARD_SZ - moves + 1, -1);
+    }
+
+    return abSearch(board, -BOARD_SZ, BOARD_SZ, moves);
+} 

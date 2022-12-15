@@ -1,4 +1,3 @@
-#include <fstream>
 #include <chrono>
 #include <vector>
 #include "utils.hpp"
@@ -15,7 +14,7 @@ void test(std::string moves, int exp_score) {
             board = flip(board);
         }
     }
-    auto res = solve(board, -BOARD_SZ, BOARD_SZ);
+    auto res = solve(board);
     int score = res.first;
     if (score > 0) {
         score = (score + 1) / 2;
@@ -27,34 +26,22 @@ void test(std::string moves, int exp_score) {
     if (score != exp_score) {
         printf("Wrong score for %s\n", moves.c_str());
         printBoard(board);
-        printf("Expected score %d, but got %d.", exp_score, score);
-        printf("Solve claims the best move is cloumn %d\n", res.second + 1);
+        printf("Expected score %d, but got %d.\n", exp_score, score);
+        printf("Solver claims the best move is cloumn %d\n", res.second + 1);
         exit(0);
     }
 }
 
 
-int main(int argc, char **argv) {
-    if (argc != 2) {
-        printf("Usage: ./test <testcase filepath>");
-        return 0;
-    }
-
-    std::ifstream f;
-    f.open(argv[1], std::fstream::in);
-    if (!f.good()) {
-        printf("Failed to open file %s\n", argv[1]);
-	exit(1);
-    }
-
-
+int main() {
     std::vector<std::string> boards;
     std::vector<int> scores;
     {
-        std::string moves;
+        char moves[BOARD_SZ + 1];
         int score;
-        while (f >> moves >> score) {
-            boards.push_back(moves);
+
+        while (scanf("%s %d\n", moves, &score) == 2) {
+            boards.push_back(std::string(moves));
             scores.push_back(score);
         }
     }
@@ -68,10 +55,10 @@ int main(int argc, char **argv) {
     }
 
     double time = double(clock() - start) / CLOCKS_PER_SEC;
-    printf("Testing against file %s with %d boards\n", argv[1], testcase_cnt);
+    printf("# boards: %d\n", testcase_cnt);
     printf("Average time spent: %f\n", time / testcase_cnt);
-    printf("Average board searched: %f\n", 1. * SEARCH_COUNT / testcase_cnt);
-    printf("# board per ms: %f\n", SEARCH_COUNT / time / 1000.);
+    printf("Average # positions searched per board: %f\n", 1. * SEARCH_COUNT / testcase_cnt);
+    printf("# boards per ms: %f\n", SEARCH_COUNT / time / 1000.);
 
     return 0;
 }

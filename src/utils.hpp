@@ -35,6 +35,15 @@
 #define col_mask ((1 << COL_SZ) - 1)
 #define getColumn(board, idx) ((board >> (COL_SZ * idx)) & col_mask)
 #define height(col) (32 - __builtin_clz(col) - 1)
+const long long topBit[] = {
+    1LL << (COL_SZ - 1),
+    1LL << (COL_SZ * 2 - 1),
+    1LL << (COL_SZ * 3 - 1),
+    1LL << (COL_SZ * 4 - 1),
+    1LL << (COL_SZ * 5 - 1),
+    1LL << (COL_SZ * 6 - 1),
+    1LL << (COL_SZ * 7 - 1),
+};
 
 long long encodeBoard(std::vector<std::string> board) {
     long long ret = 0;
@@ -87,9 +96,7 @@ void printBoard(long long board) {
  * Checking if a column is full.
  */
 inline bool isPlayable(long long board, int col_idx) {
-    const int col = getColumn(board, col_idx);
-    const int h = height(col);
-    return h != BOARD_HEIGHT;
+    return !(board & topBit[col_idx]);
 }
 
 /*
@@ -99,7 +106,6 @@ inline long long nxtMove(long long board, int col_idx) {
     const int col = getColumn(board, col_idx);
     const int h = height(col);
 
-    assert (h != BOARD_HEIGHT);
     /*
                           (len = height)
     original column: 0001 --------------
@@ -165,20 +171,15 @@ inline int countMoves(long long board) {
     return ret;
 }
 
-/*
- * Evaluate the potential of current board. Only used to decide search order.
- */
-
-int evalScore(long long board) {
+long long winningSpot(long long board) {
     long long vac = 0b0111111011111101111110111111011111101111110111111LL;
-
 
     for (int i = 0; i < BOARD_WIDTH; i++) {
         const int h = height(getColumn(board, i));
+        board ^= (1LL << (i * COL_SZ + h)); // remove padding bit
         vac ^= ((1LL << h) - 1) << (COL_SZ * i);
     }
 
-    board = removePadding(board);
     long long r = (board << 1) & (board << 2) & (board << 3);
 
     for (int shift = COL_SZ - 1; shift <= COL_SZ + 1; shift++) {
@@ -189,5 +190,19 @@ int evalScore(long long board) {
         r |= tmp & (board << (3 * shift));
         r |= tmp & (board >> shift);
     }
-    return __builtin_popcountll(r & vac);
+    return r & vac;
+}
+
+/*
+ * Evaluate the potential of current board. Only used to decide search order.
+ */
+
+int evalScore(long long board) {
+    const long long ws = winningSpot(board);
+    /*
+     * Besides having many winning spots, having two consecutive winning spots in 
+     * the same column is also strong, and imply that the game won't last too long.
+     * So it's worth to search it first.
+     */
+    return __builtin_popcountll(ws) + 4 * __builtin_popcountll(ws & (ws >> 1));
 }
