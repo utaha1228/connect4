@@ -32,9 +32,10 @@
  * on the board plus one when someone win.
  */
 
-#define col_mask ((1 << COL_SZ) - 1)
+#define col_mask ((1LL << COL_SZ) - 1)
 #define getColumn(board, idx) ((board >> (COL_SZ * idx)) & col_mask)
 #define height(col) (32 - __builtin_clz(col) - 1)
+
 const long long topBit[] = {
     1LL << (COL_SZ - 1),
     1LL << (COL_SZ * 2 - 1),
@@ -43,6 +44,16 @@ const long long topBit[] = {
     1LL << (COL_SZ * 5 - 1),
     1LL << (COL_SZ * 6 - 1),
     1LL << (COL_SZ * 7 - 1),
+};
+
+const long long colPos[] = {
+    col_mask << (COL_SZ * 0),
+    col_mask << (COL_SZ * 1),
+    col_mask << (COL_SZ * 2),
+    col_mask << (COL_SZ * 3),
+    col_mask << (COL_SZ * 4),
+    col_mask << (COL_SZ * 5),
+    col_mask << (COL_SZ * 6),
 };
 
 long long encodeBoard(std::vector<std::string> board) {
@@ -102,16 +113,16 @@ inline bool isPlayable(long long board, int col_idx) {
 /*
  * Return the board after playing a move in column `col_idx`.
  */
-inline long long nxtMove(long long board, int col_idx) {
-    const int col = getColumn(board, col_idx);
-    const int h = height(col);
-
+inline void nxtMove(long long &board, long long &flp, int col_idx) {
+    const long long top = board & flp & colPos[col_idx];
     /*
                           (len = height)
     original column: 0001 --------------
     new column:      0011 --------------
     */
-    return board ^ (1LL << (COL_SZ * col_idx + h + 1));
+
+    board ^= (top << 1);
+    flp ^= (top << 1) ^ top;
 }
 
 /*
@@ -133,20 +144,16 @@ inline long long flip(long long board) {
  * Remove padding bits of a board.
  */
 
-inline long long removePadding(long long board) {
-    for (int i = 0; i < BOARD_WIDTH; i++) {
-        const int h = height(getColumn(board, i));
-        board ^= (1LL << (i * COL_SZ + h)); // remove the padding bit
-    }
-    return board;
+inline long long removePadding(long long board, long long flp) {
+    return board ^ (board & flp);
 }
 
 /*
  * Check if we are winning
  */
 
-bool isWinning(long long board) {
-    board = removePadding(board);
+bool isWinning(long long board, long long flp) {
+    board = removePadding(board, flp);
 
     const int nDir = 4;
     // the shifting amount of vertical, horizontal, two diagonals, respectively
@@ -163,22 +170,14 @@ bool isWinning(long long board) {
 /*
  * Count the number of disks on the board.
  */
-inline int countMoves(long long board) {
-    int ret = 0;
-    for (int i = 0; i < BOARD_WIDTH; i++) {
-        ret += height(getColumn(board, i));
-    }
-    return ret;
+inline int countMoves(long long board, long long flp) {
+    return __builtin_popcountll(board ^ flp);
 }
 
-long long winningSpot(long long board) {
-    long long vac = 0b0111111011111101111110111111011111101111110111111LL;
-
-    for (int i = 0; i < BOARD_WIDTH; i++) {
-        const int h = height(getColumn(board, i));
-        board ^= (1LL << (i * COL_SZ + h)); // remove padding bit
-        vac ^= ((1LL << h) - 1) << (COL_SZ * i);
-    }
+inline long long winningSpot(long long board, long long flp) {
+    const long long playable = 0b0111111011111101111110111111011111101111110111111LL;
+    long long empty = ~(board ^ flp);
+    board = removePadding(board, flp);
 
     long long r = (board << 1) & (board << 2) & (board << 3);
 
@@ -190,15 +189,15 @@ long long winningSpot(long long board) {
         r |= tmp & (board << (3 * shift));
         r |= tmp & (board >> shift);
     }
-    return r & vac;
+    return r & playable & empty;
 }
 
 /*
  * Evaluate the potential of current board. Only used to decide search order.
  */
 
-int evalScore(long long board) {
-    const long long ws = winningSpot(board);
+int evalScore(long long board, long long flp) {
+    const long long ws = winningSpot(board, flp);
     /*
      * Besides having many winning spots, having two consecutive winning spots in 
      * the same column is also strong, and imply that the game won't last too long.

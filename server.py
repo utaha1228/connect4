@@ -3,7 +3,7 @@ import string
 from flask import Flask, render_template
 app = Flask(__name__)
 
-@app.route('/test/<path:filepath>')
+@app.route('/benchmark/<path:filepath>')
 def benchmark(filepath):
     clean = string.ascii_letters + string.digits + "_-"
     if any(c not in clean for c in filepath):
