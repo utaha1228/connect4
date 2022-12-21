@@ -14,7 +14,7 @@ RUN apt install g++
 
 RUN pip3 install Flask
 
-RUN g++ src/benchmark.cpp -Ofast -o ./benchmark
+RUN g++ src/benchmark.cpp -Ofast -o ./eval_benchmark
 
 CMD ["python3","./server.py"]
 
