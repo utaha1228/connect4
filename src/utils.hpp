@@ -155,14 +155,22 @@ inline long long removePadding(long long board, long long flp) {
 bool isWinning(long long board, long long flp) {
     board = removePadding(board, flp);
 
-    const int nDir = 4;
-    // the shifting amount of vertical, horizontal, two diagonals, respectively
-    const long long shifts[] = {1, COL_SZ, COL_SZ - 1, COL_SZ + 1};
-    for (int i = 0; i < nDir; i++) {
-        const long long tmp = board & (board >> shifts[i]);
-        if (tmp & (tmp >> (2 * shifts[i]))) return true;
+    {
+        const long long tmp = board & (board >> 1);
+        if (tmp & (tmp >> (2 * 1))) return true;
     }
-
+    {
+        const long long tmp = board & (board >> COL_SZ);
+        if (tmp & (tmp >> (2 * COL_SZ))) return true;
+    }
+    {
+        const long long tmp = board & (board >> (COL_SZ - 1));
+        if (tmp & (tmp >> (2 * (COL_SZ - 1)))) return true;
+    }
+    {
+        const long long tmp = board & (board >> (COL_SZ + 1));
+        if (tmp & (tmp >> (2 * (COL_SZ + 1)))) return true;
+    }
     return false;
 }
 
@@ -181,13 +189,29 @@ inline long long winningSpot(long long board, long long flp) {
 
     long long r = (board << 1) & (board << 2) & (board << 3);
 
-    for (int shift = COL_SZ - 1; shift <= COL_SZ + 1; shift++) {
-        long long tmp = (board >> shift) & (board >> (2 * shift));
-        r |= tmp & (board >> (3 * shift));
-        r |= tmp & (board << shift);
-        tmp = (board << shift) & (board << (2 * shift));
-        r |= tmp & (board << (3 * shift));
-        r |= tmp & (board >> shift);
+    {
+        long long tmp = (board >> COL_SZ) & (board >> (2 * COL_SZ));
+        r |= tmp & (board >> (3 * COL_SZ));
+        r |= tmp & (board << COL_SZ);
+        tmp = (board << COL_SZ) & (board << (2 * COL_SZ));
+        r |= tmp & (board << (3 * COL_SZ));
+        r |= tmp & (board >> COL_SZ);
+    }
+    {
+        long long tmp = (board >> (COL_SZ + 1)) & (board >> (2 * (COL_SZ + 1)));
+        r |= tmp & (board >> (3 * (COL_SZ + 1)));
+        r |= tmp & (board << (COL_SZ + 1));
+        tmp = (board << (COL_SZ + 1)) & (board << (2 * (COL_SZ + 1)));
+        r |= tmp & (board << (3 * (COL_SZ + 1)));
+        r |= tmp & (board >> (COL_SZ + 1));
+    }
+    {
+        long long tmp = (board >> (COL_SZ - 1)) & (board >> (2 * (COL_SZ - 1)));
+        r |= tmp & (board >> (3 * (COL_SZ - 1)));
+        r |= tmp & (board << (COL_SZ - 1));
+        tmp = (board << (COL_SZ - 1)) & (board << (2 * (COL_SZ - 1)));
+        r |= tmp & (board << (3 * (COL_SZ - 1)));
+        r |= tmp & (board >> (COL_SZ - 1));
     }
     return r & playable & empty;
 }
